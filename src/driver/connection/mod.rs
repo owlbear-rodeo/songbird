@@ -2,15 +2,13 @@ pub mod error;
 
 use super::{
     tasks::{message::*, udp_rx, udp_tx, ws as ws_task},
-    Config,
-    CryptoMode,
+    Config, CryptoMode,
 };
 use crate::{
     constants::*,
     model::{
         payload::{Identify, Resume, SelectProtocol},
-        Event as GatewayEvent,
-        ProtocolData,
+        Event as GatewayEvent, ProtocolData,
     },
     ws::{self, ReceiverExt, SenderExt, WsStream},
     ConnectionInfo,
@@ -22,7 +20,7 @@ use std::{net::IpAddr, str::FromStr, sync::Arc};
 use tokio::{net::UdpSocket, spawn, time::timeout};
 use tracing::{debug, info, instrument};
 use url::Url;
-use xsalsa20poly1305::{aead::NewAead, XSalsa20Poly1305 as Cipher};
+use xsalsa20poly1305::{KeyInit, XSalsa20Poly1305 as Cipher};
 
 #[cfg(all(feature = "rustls-marker", not(feature = "native-marker")))]
 use ws::create_rustls_client;
@@ -329,7 +327,10 @@ async fn init_cipher(client: &mut WsStream, mode: CryptoMode) -> Result<Cipher> 
                     return Err(Error::CryptoModeInvalid);
                 }
 
-                return Ok(Cipher::new_from_slice(&desc.secret_key)?);
+                return match Cipher::new_from_slice(&desc.secret_key) {
+                    Ok(v) => Ok(v),
+                    Err(_) => Err(Error::Crypto(xsalsa20poly1305::Error)),
+                };
             },
             other => {
                 debug!(

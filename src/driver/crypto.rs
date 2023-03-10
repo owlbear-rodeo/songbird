@@ -5,11 +5,7 @@ use rand::Rng;
 use std::num::Wrapping;
 use xsalsa20poly1305::{
     aead::{AeadInPlace, Error as CryptoError},
-    Nonce,
-    Tag,
-    XSalsa20Poly1305 as Cipher,
-    NONCE_SIZE,
-    TAG_SIZE,
+    Nonce, Tag, XSalsa20Poly1305 as Cipher, NONCE_SIZE, TAG_SIZE,
 };
 
 /// Variants of the XSalsa20Poly1305 encryption scheme.
@@ -242,7 +238,7 @@ impl CryptoState {
 mod test {
     use super::*;
     use discortp::rtp::MutableRtpPacket;
-    use xsalsa20poly1305::{aead::NewAead, KEY_SIZE, TAG_SIZE};
+    use xsalsa20poly1305::{aead::KeyInit, KEY_SIZE, TAG_SIZE};
 
     #[test]
     fn small_packet_decrypts_error() {

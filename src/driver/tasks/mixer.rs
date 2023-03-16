@@ -5,11 +5,7 @@ use crate::{
     Config,
 };
 use audiopus::{
-    coder::Encoder as OpusEncoder,
-    softclip::SoftClip,
-    Application as CodingMode,
-    Bitrate,
-    Channels,
+    coder::Encoder as OpusEncoder, softclip::SoftClip, Application as CodingMode, Bitrate, Channels,
 };
 use discortp::{
     rtp::{MutableRtpPacket, RtpPacket},
@@ -33,6 +29,7 @@ pub struct Mixer {
     pub interconnect: Interconnect,
     pub mix_rx: Receiver<MixerMessage>,
     pub muted: bool,
+    pub disabled: bool,
     pub packet: [u8; VOICE_PACKET_MAX],
     pub prevent_events: bool,
     pub silence_frames: u8,
@@ -88,6 +85,7 @@ impl Mixer {
             encoder,
             interconnect,
             mix_rx,
+            disabled: false,
             muted: false,
             packet,
             prevent_events: false,
@@ -224,6 +222,10 @@ impl Mixer {
             },
             SetMute(m) => {
                 self.muted = m;
+                Ok(())
+            },
+            SetDisabled(d) => {
+                self.disabled = d;
                 Ok(())
             },
             SetConn(conn, ssrc) => {
@@ -404,6 +406,11 @@ impl Mixer {
     }
 
     pub fn cycle(&mut self) -> Result<()> {
+        if self.disabled {
+            self.march_deadline();
+            return Ok(());
+        }
+
         let mut mix_buffer = [0f32; STEREO_FRAME_SIZE];
 
         // Walk over all the audio files, combining into one audio frame according

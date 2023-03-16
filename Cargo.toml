@@ -120,22 +120,9 @@ utils = { path = "utils" }
 
 [features]
 # Core features
-default = [
-    "serenity-rustls",
-    "driver",
-    "gateway",
-]
-gateway = [
-    "gateway-core",
-    "tokio/sync",
-    "tokio/time",
-]
-gateway-core = [
-    "dashmap",
-    "flume",
-    "parking_lot",
-    "pin-project",
-]
+default = ["serenity-rustls", "driver", "gateway"]
+gateway = ["gateway-core", "tokio/sync", "tokio/time"]
+gateway-core = ["dashmap", "flume", "parking_lot", "pin-project"]
 driver = [
     "async-tungstenite",
     "driver-core",
@@ -165,9 +152,24 @@ driver-core = [
 ]
 rustls = ["async-tungstenite/tokio-rustls-webpki-roots", "rustls-marker"]
 native = ["async-tungstenite/tokio-native-tls", "native-marker"]
-serenity-rustls = ["serenity/rustls_backend", "rustls", "gateway", "serenity-deps"]
-serenity-native = ["serenity/native_tls_backend", "native", "gateway", "serenity-deps"]
-twilight-rustls = ["twilight", "twilight-gateway/rustls-native-roots", "rustls", "gateway"]
+serenity-rustls = [
+    "serenity/rustls_backend",
+    "rustls",
+    "gateway",
+    "serenity-deps",
+]
+serenity-native = [
+    "serenity/native_tls_backend",
+    "native",
+    "gateway",
+    "serenity-deps",
+]
+twilight-rustls = [
+    "twilight",
+    "twilight-gateway/rustls-native-roots",
+    "rustls",
+    "gateway",
+]
 twilight-native = ["twilight", "twilight-gateway/native", "native", "gateway"]
 twilight = ["twilight-model"]
 zlib-simd = ["twilight-gateway/zlib-simd"]

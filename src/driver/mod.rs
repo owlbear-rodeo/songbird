@@ -15,11 +15,11 @@ pub(crate) mod connection;
 mod crypto;
 mod decode_mode;
 pub mod retry;
-pub(crate) mod tasks;
+pub mod tasks;
 
 use connection::error::{Error, Result};
 pub use crypto::CryptoMode;
-pub(crate) use crypto::CryptoState;
+pub use crypto::CryptoState;
 pub use decode_mode::DecodeMode;
 
 #[cfg(feature = "builtin-queue")]
@@ -28,10 +28,7 @@ use crate::{
     events::EventData,
     input::Input,
     tracks::{self, Track, TrackHandle},
-    Config,
-    ConnectionInfo,
-    Event,
-    EventHandler,
+    Config, ConnectionInfo, Event, EventHandler,
 };
 /// Opus encoder bitrate settings.
 pub use audiopus::{self as opus, Bitrate};
@@ -127,6 +124,15 @@ impl Driver {
     pub fn mute(&mut self, mute: bool) {
         self.self_mute = mute;
         self.send(CoreMessage::Mute(mute));
+    }
+
+    /// Sets whether the mixer is to disabled.
+    ///
+    /// If there is no live voice connection, then this only acts as a settings
+    /// update for future connections.
+    #[instrument(skip(self))]
+    pub fn disable_mixer(&mut self, disable: bool) {
+        self.send(CoreMessage::DisableMixer(disable));
     }
 
     /// Returns whether the driver is muted (i.e., processes audio internally

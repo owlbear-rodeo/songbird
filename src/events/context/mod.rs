@@ -1,14 +1,35 @@
 pub mod data;
 pub(crate) mod internal_data;
 
+use std::fmt;
+
 use super::*;
 use crate::{
+    driver::tasks::message::{UdpTxMessage, WsMessage},
     model::payload::{ClientDisconnect, Speaking},
     tracks::{TrackHandle, TrackState},
 };
 pub use data as context_data;
 use data::*;
+use flume::Sender;
 use internal_data::*;
+use xsalsa20poly1305::XSalsa20Poly1305 as Cipher;
+
+pub struct CipherWrapper(Cipher);
+
+impl fmt::Debug for CipherWrapper {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("CipherWrapper").finish()
+    }
+}
+
+impl std::ops::Deref for CipherWrapper {
+    type Target = Cipher;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 /// Information about which tracks or data fired an event.
 ///
@@ -41,22 +62,41 @@ pub enum EventContext<'a> {
     /// Fired whenever a client disconnects.
     ClientDisconnect(ClientDisconnect),
     /// Fires when this driver successfully connects to a voice channel.
-    DriverConnect(ConnectData<'a>),
+    DriverConnect(
+        ConnectData<'a>,
+        Sender<UdpTxMessage>,
+        Sender<WsMessage>,
+        CipherWrapper,
+    ),
     /// Fires when this driver successfully reconnects after a network error.
-    DriverReconnect(ConnectData<'a>),
+    DriverReconnect(
+        ConnectData<'a>,
+        Sender<UdpTxMessage>,
+        Sender<WsMessage>,
+        CipherWrapper,
+    ),
     /// Fires when this driver fails to connect to, or drops from, a voice channel.
     DriverDisconnect(DisconnectData<'a>),
 }
 
-#[derive(Debug)]
 pub enum CoreContext {
     SpeakingStateUpdate(Speaking),
     SpeakingUpdate(InternalSpeakingUpdate),
     VoicePacket(InternalVoicePacket),
     RtcpPacket(InternalRtcpPacket),
     ClientDisconnect(ClientDisconnect),
-    DriverConnect(InternalConnect),
-    DriverReconnect(InternalConnect),
+    DriverConnect(
+        InternalConnect,
+        Sender<UdpTxMessage>,
+        Sender<WsMessage>,
+        Cipher,
+    ),
+    DriverReconnect(
+        InternalConnect,
+        Sender<UdpTxMessage>,
+        Sender<WsMessage>,
+        Cipher,
+    ),
     DriverDisconnect(InternalDisconnect),
 }
 
@@ -70,8 +110,18 @@ impl<'a> CoreContext {
             VoicePacket(evt) => EventContext::VoicePacket(VoiceData::from(evt)),
             RtcpPacket(evt) => EventContext::RtcpPacket(RtcpData::from(evt)),
             ClientDisconnect(evt) => EventContext::ClientDisconnect(*evt),
-            DriverConnect(evt) => EventContext::DriverConnect(ConnectData::from(evt)),
-            DriverReconnect(evt) => EventContext::DriverReconnect(ConnectData::from(evt)),
+            DriverConnect(evt, tx, ws, cipher) => EventContext::DriverConnect(
+                ConnectData::from(evt),
+                tx.clone(),
+                ws.clone(),
+                CipherWrapper(cipher.clone()),
+            ),
+            DriverReconnect(evt, tx, ws, cipher) => EventContext::DriverReconnect(
+                ConnectData::from(evt),
+                tx.clone(),
+                ws.clone(),
+                CipherWrapper(cipher.clone()),
+            ),
             DriverDisconnect(evt) => EventContext::DriverDisconnect(DisconnectData::from(evt)),
         }
     }
@@ -89,8 +139,8 @@ impl EventContext<'_> {
             VoicePacket(_) => Some(CoreEvent::VoicePacket),
             RtcpPacket(_) => Some(CoreEvent::RtcpPacket),
             ClientDisconnect(_) => Some(CoreEvent::ClientDisconnect),
-            DriverConnect(_) => Some(CoreEvent::DriverConnect),
-            DriverReconnect(_) => Some(CoreEvent::DriverReconnect),
+            DriverConnect(_, _, _, _) => Some(CoreEvent::DriverConnect),
+            DriverReconnect(_, _, _, _) => Some(CoreEvent::DriverReconnect),
             DriverDisconnect(_) => Some(CoreEvent::DriverDisconnect),
             _ => None,
         }

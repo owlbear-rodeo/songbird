@@ -5,8 +5,8 @@ mod disposal;
 mod events;
 mod mixer;
 mod udp_rx;
-mod udp_tx;
-mod ws;
+pub mod udp_tx;
+pub mod ws;
 
 pub use self::{core::*, disposal::*, events::*, mixer::*, udp_rx::*, udp_tx::*, ws::*};
 

@@ -32,6 +32,8 @@ pub(crate) struct Connection {
     pub(crate) info: ConnectionInfo,
     pub(crate) ssrc: u32,
     pub(crate) ws: Sender<WsMessage>,
+    pub(crate) udp_tx: Sender<UdpTxMessage>,
+    pub(crate) cipher: Cipher,
 }
 
 impl Connection {
@@ -187,7 +189,7 @@ impl Connection {
             cipher: cipher.clone(),
             crypto_state: config.crypto_mode.into(),
             udp_rx: udp_receiver_msg_tx,
-            udp_tx: udp_sender_msg_tx,
+            udp_tx: udp_sender_msg_tx.clone(),
         };
 
         interconnect
@@ -211,7 +213,7 @@ impl Connection {
         spawn(udp_rx::runner(
             interconnect.clone(),
             udp_receiver_msg_rx,
-            cipher,
+            cipher.clone(),
             config.clone(),
             udp_rx,
         ));
@@ -221,6 +223,8 @@ impl Connection {
             info,
             ssrc,
             ws: ws_msg_tx,
+            udp_tx: udp_sender_msg_tx,
+            cipher,
         })
     }
 

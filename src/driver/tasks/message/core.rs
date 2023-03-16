@@ -22,6 +22,7 @@ pub enum CoreMessage {
     RemoveGlobalEvents,
     SetConfig(Config),
     Mute(bool),
+    DisableMixer(bool),
     Reconnect,
     FullReconnect,
     RebuildInterconnect,

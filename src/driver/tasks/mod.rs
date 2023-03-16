@@ -18,8 +18,7 @@ use crate::{
         internal_data::{InternalConnect, InternalDisconnect},
         CoreContext,
     },
-    Config,
-    ConnectionInfo,
+    Config, ConnectionInfo,
 };
 use flume::{Receiver, RecvError, Sender};
 use message::*;
@@ -171,7 +170,11 @@ async fn runner(mut config: Config, rx: Receiver<CoreMessage>, tx: Sender<CoreMe
             Ok(CoreMessage::Mute(m)) => {
                 let _ = interconnect.mixer.send(MixerMessage::SetMute(m));
             },
+            Ok(CoreMessage::DisableMixer(d)) => {
+                let _ = interconnect.mixer.send(MixerMessage::SetDisabled(d));
+            },
             Ok(CoreMessage::Reconnect) => {
+                println!("reconnect");
                 if let Some(mut conn) = connection.take() {
                     // try once: if interconnect, try again.
                     // if still issue, full connect.
@@ -202,22 +205,28 @@ async fn runner(mut config: Config, rx: Receiver<CoreMessage>, tx: Sender<CoreMe
                             .await;
                     } else if let Some(ref connection) = &connection {
                         let _ = interconnect.events.send(EventMessage::FireCoreEvent(
-                            CoreContext::DriverReconnect(InternalConnect {
-                                info: connection.info.clone(),
-                                ssrc: connection.ssrc,
-                            }),
+                            CoreContext::DriverReconnect(
+                                InternalConnect {
+                                    info: connection.info.clone(),
+                                    ssrc: connection.ssrc,
+                                },
+                                connection.udp_tx.clone(),
+                                connection.ws.clone(),
+                                connection.cipher.clone(),
+                            ),
                         ));
                     }
                 }
             },
-            Ok(CoreMessage::FullReconnect) =>
+            Ok(CoreMessage::FullReconnect) => {
                 if let Some(conn) = connection.take() {
                     let info = conn.info.clone();
 
                     connection = ConnectionRetryData::reconnect(info, &mut attempt_idx)
                         .attempt(&mut retrying, &interconnect, &config)
                         .await;
-                },
+                }
+            },
             Ok(CoreMessage::RebuildInterconnect) => {
                 interconnect.restart_volatile_internals();
             },
@@ -278,18 +287,28 @@ impl ConnectionRetryData {
                         let _ = tx.send(Ok(()));
 
                         let _ = interconnect.events.send(EventMessage::FireCoreEvent(
-                            CoreContext::DriverConnect(InternalConnect {
-                                info: connection.info.clone(),
-                                ssrc: connection.ssrc,
-                            }),
+                            CoreContext::DriverConnect(
+                                InternalConnect {
+                                    info: connection.info.clone(),
+                                    ssrc: connection.ssrc,
+                                },
+                                connection.udp_tx.clone(),
+                                connection.ws.clone(),
+                                connection.cipher.clone(),
+                            ),
                         ));
                     },
                     ConnectionFlavour::Reconnect => {
                         let _ = interconnect.events.send(EventMessage::FireCoreEvent(
-                            CoreContext::DriverReconnect(InternalConnect {
-                                info: connection.info.clone(),
-                                ssrc: connection.ssrc,
-                            }),
+                            CoreContext::DriverReconnect(
+                                InternalConnect {
+                                    info: connection.info.clone(),
+                                    ssrc: connection.ssrc,
+                                },
+                                connection.udp_tx.clone(),
+                                connection.ws.clone(),
+                                connection.cipher.clone(),
+                            ),
                         ));
                     },
                 }

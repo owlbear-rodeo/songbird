@@ -30,6 +30,7 @@ pub enum MixerMessage {
     SetBitrate(Bitrate),
     SetConfig(Config),
     SetMute(bool),
+    SetDisabled(bool),
 
     SetConn(MixerConnection, u32),
     Ws(Option<Sender<WsMessage>>),

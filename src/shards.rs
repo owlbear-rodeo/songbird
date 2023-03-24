@@ -163,8 +163,10 @@ impl VoiceUpdate for Shard {
         self_deaf: bool,
         self_mute: bool,
     ) -> JoinResult<()> {
+        #[allow(unused_variables)]
         let nz_guild_id = NonZeroU64::new(guild_id.0).ok_or(JoinError::IllegalGuild)?;
 
+        #[allow(unused_variables)]
         let nz_channel_id = match channel_id {
             Some(c) => Some(NonZeroU64::new(c.0).ok_or(JoinError::IllegalChannel)?),
             None => None,
@@ -200,9 +202,10 @@ impl VoiceUpdate for Shard {
                 handle.command(&cmd).await?;
                 Ok(())
             },
-            Shard::Generic(g) =>
+            Shard::Generic(g) => {
                 g.update_voice_state(guild_id, channel_id, self_deaf, self_mute)
-                    .await,
+                    .await
+            },
         }
     }
 }

@@ -87,8 +87,9 @@ version = "1.0"
 default-features = false
 
 [dependencies.twilight-gateway]
-optional = true
-version = "0.12.0"
+git = 'https://github.com/owlbear-rodeo/twilight.git'
+branch = "tls-vendored"
+version = "0.12"
 default-features = false
 
 [dependencies.twilight-model]
